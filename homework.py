@@ -27,6 +27,7 @@ HOMEWORK_STATUSES = {
 
 class Logging:
     """Настройки логирования."""
+
     # А тут установлены настройки логгера для текущего файла
     # - example_for_log.py
     logger = logging.getLogger(__name__)
