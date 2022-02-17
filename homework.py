@@ -23,14 +23,16 @@ HOMEWORK_STATUSES = {
 
 
 class Logging:
-    # А тут установлены настройки логгера для текущего файла - example_for_log.py
+    # А тут установлены настройки логгера для текущего файла
+    # - example_for_log.py
     logger = logging.getLogger(__name__)
 
     # Устанавливаем уровень, с которого логи будут сохраняться в файл
     logger.setLevel(logging.INFO)
 
     # Указываем обработчик логов
-    handler = RotatingFileHandler('homework.py.log', maxBytes=50000000, backupCount=5, encoding='utf-8')
+    handler = RotatingFileHandler('homework.py.log', maxBytes=50000000,
+                                  backupCount=5, encoding='utf-8')
     logger.addHandler(handler)
 
 
@@ -49,9 +51,11 @@ def get_api_answer(current_timestamp: int) -> requests.request:
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     if response.status_code != HTTPStatus.OK:
         Logging.logger.error(
-            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. Код ответа API: {response.status_code}')
+            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. '
+            f'Код ответа API: {response.status_code}')
         raise ConnectionError(
-            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. Код ответа API: {response.status_code}')
+            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. '
+            f'Код ответа API: {response.status_code}')
     return response.json()
 
 
@@ -59,20 +63,23 @@ def check_response(response: requests.request) -> list:
     """Проверяет ответ API на корректность"""
     if isinstance(response["homeworks"], list):
         return response['homeworks']
-    Logging.logger.error(f'Сбой в работе программы: От сервера не получили домашние работы')
+    Logging.logger.error(
+        f'Сбой в работе программы: От сервера не получили домашние работы')
     raise TypeError
 
 
 def parse_status(homework: requests.request) -> str:
-    """Извлекает из информации конкретную домашнюю работу и статус этой работы"""
+    """Извлекает из информации конкретную домашнюю работу и его статус"""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     old_homework_and_status = []
     verdict = HOMEWORK_STATUSES[homework_status]
     if homework_status not in HOMEWORK_STATUSES:
-        Logging.logger.error(f'недокументированный "{homework_status}" статус домашней работы')
+        Logging.logger.error(
+            f'недокументированный "{homework_status}" статус домашней работы')
         raise ValueError
-    if homework_name in old_homework_and_status and old_homework_and_status[homework_name] == verdict:
+    if homework_name in old_homework_and_status and old_homework_and_status[
+        homework_name] == verdict:
         return f'Статус "{homework_name}" проверки не изменился. {verdict}'
     old_homework_and_status.append({f'{homework_name}': verdict})
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -83,7 +90,8 @@ def check_tokens() -> bool:
     all_token = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
     for TOKEN in all_token:
         if TOKEN == None:
-            Logging.logger.critical(f'Отсутствует обязательная переменная окружения: {TOKEN}')
+            Logging.logger.critical(
+                f'Отсутствует обязательная переменная окружения: {TOKEN}')
             return False
     return True
 
@@ -105,7 +113,9 @@ def main() -> None:
                     send_message(bot, status_homework)
             current_timestamp = 1
             time.sleep(RETRY_TIME)
-            Logging.logger.info(f'Бот делает повторный запрос на сервер, после {RETRY_TIME}с. сна', exc_info=True)
+            Logging.logger.info(
+                f'Бот делает повторный запрос на сервер, '
+                f'после {RETRY_TIME}с. сна', exc_info=True)
             Logging.logger.debug(f'Нет новых статусов в ответе')
 
         except Exception as error:
@@ -115,7 +125,9 @@ def main() -> None:
             Logging.logger.error(f'Ошибка при запросе: {error}', exc_info=True)
         else:
             time.sleep(RETRY_TIME)
-            Logging.logger.info(f'Бот делает повторный запрос на сервер, после {RETRY_TIME}с. сна', exc_info=True)
+            Logging.logger.info(
+                f'Бот делает повторный запрос на сервер, '
+                f'после {RETRY_TIME}с. сна', exc_info=True)
 
 
 if __name__ == '__main__':
