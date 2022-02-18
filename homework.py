@@ -29,6 +29,7 @@ class Logging:  # Согласен что мудрено как-то...
     # Пометил настройки логирования в отдельный блок для того,
     # чтобы не смешивать с основными переменными программы
     """Настройки логирования."""
+
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     handler = RotatingFileHandler(
@@ -75,10 +76,12 @@ def get_api_answer(current_timestamp: int) -> requests.get:
     except ConnectionError(Logging.connection_error + ENDPOINT):
         Logging.logger.error(Logging.connection_error + ENDPOINT)
     else:
-        Logging.logger.error(Logging.connection_error + ENDPOINT +
-                             Logging.code_error + str(response.status_code))
-        raise ConnectionError(Logging.connection_error + ENDPOINT +
-                              Logging.code_error + str(response.status_code))
+        Logging.logger.error(
+            Logging.connection_error + ENDPOINT + Logging.code_error + str(
+                response.status_code))
+        raise ConnectionError(
+            Logging.connection_error + ENDPOINT + Logging.code_error + str(
+                response.status_code))
 
 
 def check_response(response: requests.request) -> list:
@@ -138,7 +141,7 @@ def main() -> None:
             old_homeworks[0] = homeworks
             current_timestamp = 1
             time.sleep(RETRY_TIME)
-            Logging.logger.info(Logging.loop_repeat, exc_info = True)
+            Logging.logger.info(Logging.loop_repeat, exc_info=True)
             Logging.logger.debug(Logging.no_status_change)
 
         except Exception as error:
