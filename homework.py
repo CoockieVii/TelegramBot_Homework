@@ -18,24 +18,20 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-HOMEWORK_STATUSES = {
+VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
 
-class Logging:
+class Logging:  # Согласен что мудрено как-то...
+    # Пометил настройки логирования в отдельный блок для того,
+    # чтобы не смешивать с основными переменными программы
     """Настройки логирования."""
 
-    # А тут установлены настройки логгера для текущего файла
-    # - example_for_log.py
     logger = logging.getLogger(__name__)
-
-    # Устанавливаем уровень, с которого логи будут сохраняться в файл
     logger.setLevel(logging.INFO)
-
-    # Указываем обработчик логов
     handler = RotatingFileHandler(
         'homework.py.log',
         maxBytes=50000000,
@@ -44,58 +40,77 @@ class Logging:
 
     logger.addHandler(handler)
 
+    connection_try = 'Попытка запроса к: '
+    connection_successful = 'Успешный запрос с '
+    connection_error = 'Ошибка при запросе: '
+    code_error = '\n Код ошибки: '
+    key_error = 'Не найден ключ: '
+    not_homeworks = "В ответе сервера не нашел: "
+    not_token = 'Нет обязательной переменной для запуска программы'
+
 
 def send_message(bot: telegram.Bot, message: str) -> requests.request:
     """Отправляет сообщение в Telegram чат."""
-    bot.send_message(
-        chat_id=TELEGRAM_CHAT_ID,
-        text=message)
-    Logging.logger.info(f'Бот отправил сообщение "{message}"')
+
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        Logging.logger.info(f'Бот отправил сообщение "{message}"')
+    except:
+        Logging.logger.error(f'Боту не удалось сообщение "{message}"')
+        raise ConnectionError(f'Ошибка при отправке сообщения "{message}"')
 
 
-def get_api_answer(current_timestamp: int) -> requests.request:
+def get_api_answer(current_timestamp: int) -> requests.get:
     """Делает запрос к эндпоинту API-сервиса."""
+
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != HTTPStatus.OK:
-        Logging.logger.error(
-            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. '
-            f'Код ответа API: {response.status_code}')
-        raise ConnectionError(
-            f'Сбой в работе программы: Эндпоинт {ENDPOINT} недоступен. '
-            f'Код ответа API: {response.status_code}')
-    return response.json()
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        Logging.logger.info(Logging.connection_error + ENDPOINT)
+        if response.status_code == HTTPStatus.OK:
+            Logging.logger.info(Logging.connection_successful + ENDPOINT)
+            return response.json()
+    except:
+        Logging.logger.error(Logging.connection_error + ENDPOINT)
+        raise ConnectionError(Logging.connection_error + ENDPOINT)
+    else:
+        Logging.logger.error(Logging.connection_error + ENDPOINT +
+                             Logging.code_error + str(response.status_code))
+        raise ConnectionError(Logging.connection_error + ENDPOINT +
+                              Logging.code_error + str(response.status_code))
 
 
 def check_response(response: requests.request) -> list:
     """Проверяет ответ API на корректность."""
-    if isinstance(response["homeworks"], list):
-        return response['homeworks']
-    Logging.logger.error(
-        'Сбой в работе программы: От сервера не получили домашние работы')
-    raise TypeError
+
+    KEY = 'homeworks'
+    if KEY not in response:
+        Logging.logger.error(Logging.key_error, KEY)
+        raise KeyError(Logging.key_error, KEY)
+    if isinstance(response[KEY], list):
+        return response[KEY]
+    Logging.logger.error(Logging.not_homeworks + KEY)
+    raise TypeError(Logging.not_homeworks + KEY)
 
 
 def parse_status(homework: requests.request) -> str:
     """Извлекает из информации конкретную домашнюю работу и его статус."""
+
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
-    old_homework_and_status = []
-    verdict = HOMEWORK_STATUSES[homework_status]
-    if homework_status not in HOMEWORK_STATUSES:
-        Logging.logger.error(
-            f'Недокументированный "{homework_status}" статус домашней работы')
-        raise ValueError
-    if (homework_name in old_homework_and_status) and (
-            old_homework_and_status[homework_name] == verdict):
-        return f'Статус "{homework_name}" проверки не изменился. {verdict}'
-    old_homework_and_status.append({f'{homework_name}': verdict})
+    if homework_status not in VERDICTS:
+        Logging.logger.error(Logging.key_error + homework_status)
+        raise KeyError(Logging.key_error + homework_status)
+    verdict = VERDICTS[homework_status]
+    Logging.logger.info(f'Успешно извлекли и передали: имя: "{homework_name}",'
+                        f' \n статус: {verdict}')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens() -> bool:
     """Проверяет доступность переменных окружения."""
+
     all_token = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
     for TOKEN in all_token:
         if TOKEN is None:
@@ -107,7 +122,10 @@ def check_tokens() -> bool:
 
 def main() -> None:
     """Основная логика работы бота."""
-    check_tokens()
+
+    if not check_tokens():
+        Logging.logger.critical(Logging.not_token)
+        raise Warning(Logging.not_token)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     old_homeworks = [None]
@@ -116,10 +134,12 @@ def main() -> None:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
             if old_homeworks[0] != homeworks:
-                old_homeworks[0] = homeworks
                 for homework in homeworks:
-                    status_homework = parse_status(homework)
-                    send_message(bot, status_homework)
+                    for old_homework in old_homeworks:
+                        if homework != old_homework:
+                            status_homework = parse_status(homework)
+                            send_message(bot, status_homework)
+            old_homeworks[0] = homeworks
             current_timestamp = 1
             time.sleep(RETRY_TIME)
             Logging.logger.info(
