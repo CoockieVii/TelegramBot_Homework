@@ -123,7 +123,7 @@ def main() -> None:
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            homeworks = check_response('response')
+            homeworks = check_response(response)
             if old_homeworks_or_error[0] != homeworks:
                 for homework in homeworks:
                     for old_homework in old_homeworks_or_error:
