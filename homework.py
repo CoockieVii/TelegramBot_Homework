@@ -14,7 +14,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
+RETRY_TIME = 6
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -24,43 +24,36 @@ VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler(
+    'homework.py.log',
+    maxBytes=50000000,
+    backupCount=5,
+    encoding='utf-8')
+logger.addHandler(handler)
 
-class Logging:  # Согласен что мудрено как-то...
-    # Пометил настройки логирования в отдельный блок для того,
-    # чтобы не смешивать с основными переменными программы
-    """Настройки логирования."""
-
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler(
-        'homework.py.log',
-        maxBytes=50000000,
-        backupCount=5,
-        encoding='utf-8')
-    logger.addHandler(handler)
-
-    send_successful = "Успешная отправка сообщения: "
-    send_error = "Ошибка при отправке сообщения: "
-    connection_try = 'Попытка запроса к: '
-    connection_successful = 'Успешный запрос с '
-    connection_error = 'Ошибка при запросе: '
-    code_error = '\n Код ошибки: '
-    key_error = 'Не найден ключ: '
-    not_homeworks = "В ответе сервера не нашел: "
-    not_token = 'Нет обязательной переменной для запуска программы'
-    loop_repeat = f'Бот делает повторный запрос на сервер, ' \
-                  f'после {RETRY_TIME}с. сна'
-    no_status_change = f'Статусы не изменены, ' \
-                       f'повторный запуск через {RETRY_TIME}'
+SEND_SUCCESSFUL = 'Успешная отправка сообщения: '
+SEND_ERROR = 'Ошибка при отправке сообщения: '
+CONNECTION_TRY = 'Попытка запроса к: '
+CONNECTION_SUCCESSFUL = 'Успешный запрос с '
+CONNECTION_ERROR = 'Ошибка при запросе: '
+CODE_ERROR = '\n Код ошибки: '
+KEY_ERROR = 'Не найден ключ: '
+NOT_HOMEWORKS = 'В ответе сервера не нашел: '
+NOT_TOKEN = 'Нет обязательной переменной для запуска программы'
+LOOP_REPEAT = f'Бот делает повторный запрос, после {RETRY_TIME}с. сна'
+NO_STATUS_CHANGE = f'Статусы не изменены, повторный запуск через {RETRY_TIME}'
 
 
 def send_message(bot: telegram.Bot, message: str) -> requests.request:
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        Logging.logger.info(Logging.send_successful + message)
-    except ConnectionError(Logging.send_error + message):
-        Logging.logger.error(Logging.send_error + message)
+        logger.info(SEND_SUCCESSFUL + message)
+    except ConnectionError:
+        logger.error(SEND_ERROR + message)
+        raise ConnectionError(SEND_ERROR + message)
 
 
 def get_api_answer(current_timestamp: int) -> requests.get:
@@ -69,31 +62,30 @@ def get_api_answer(current_timestamp: int) -> requests.get:
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        Logging.logger.info(Logging.connection_error + ENDPOINT)
+        logger.info(CONNECTION_SUCCESSFUL + ENDPOINT)
         if response.status_code == HTTPStatus.OK:
-            Logging.logger.info(Logging.connection_successful + ENDPOINT)
+            logger.info(CONNECTION_SUCCESSFUL + ENDPOINT)
             return response.json()
-    except ConnectionError(Logging.connection_error + ENDPOINT):
-        Logging.logger.error(Logging.connection_error + ENDPOINT)
+    except ConnectionError:
+        logger.error(CONNECTION_ERROR + ENDPOINT)
+        raise ConnectionError(CONNECTION_ERROR + ENDPOINT)
     else:
-        Logging.logger.error(
-            Logging.connection_error + ENDPOINT + Logging.code_error + str(
-                response.status_code))
-        raise ConnectionError(
-            Logging.connection_error + ENDPOINT + Logging.code_error + str(
-                response.status_code))
+        logger.error(CONNECTION_ERROR + ENDPOINT
+                     + CODE_ERROR + str(response.status_code))
+        raise ConnectionError(CONNECTION_ERROR + ENDPOINT
+                              + CODE_ERROR + str(response.status_code))
 
 
 def check_response(response: requests.request) -> list:
     """Проверяет ответ API на корректность."""
     KEY = 'homeworks'
     if KEY not in response:
-        Logging.logger.error(Logging.key_error, KEY)
-        raise KeyError(Logging.key_error, KEY)
+        logger.error(KEY_ERROR, KEY)
+        raise KeyError(KEY_ERROR, KEY)
     if isinstance(response[KEY], list):
         return response[KEY]
-    Logging.logger.error(Logging.not_homeworks + KEY)
-    raise TypeError(Logging.not_homeworks + KEY)
+    logger.error(NOT_HOMEWORKS + KEY)
+    raise TypeError(NOT_HOMEWORKS + KEY)
 
 
 def parse_status(homework: requests.request) -> str:
@@ -101,12 +93,12 @@ def parse_status(homework: requests.request) -> str:
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_status not in VERDICTS:
-        Logging.logger.error(Logging.key_error + homework_status)
-        raise KeyError(Logging.key_error + homework_status)
+        logger.error(KEY_ERROR + homework_status)
+        raise KeyError(KEY_ERROR + homework_status)
     verdict = VERDICTS[homework_status]
-    Logging.logger.info(f'Успешно извлекли и передали: \n'
-                        f' имя: "{homework_name}", \n'
-                        f' статус: {verdict}')
+    logger.info(f'Успешно извлекли и передали: \n'
+                f' имя: "{homework_name}", \n'
+                f' статус: {verdict}')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -115,7 +107,7 @@ def check_tokens() -> bool:
     all_token = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
     for TOKEN in all_token:
         if TOKEN is None:
-            Logging.logger.critical(Logging.not_token + str(TOKEN))
+            logger.critical(NOT_TOKEN + str(TOKEN))
             return False
     return True
 
@@ -123,36 +115,37 @@ def check_tokens() -> bool:
 def main() -> None:
     """Основная логика работы бота."""
     if not check_tokens():
-        Logging.logger.critical(Logging.not_token)
-        raise Warning(Logging.not_token)
+        logger.critical(NOT_TOKEN)
+        raise Warning(NOT_TOKEN)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    old_homeworks = [None]
+    old_homeworks_or_error = [None]
     while True:
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            if old_homeworks[0] != homeworks:
+            if old_homeworks_or_error[0] != homeworks:
                 for homework in homeworks:
-                    for old_homework in old_homeworks:
+                    for old_homework in old_homeworks_or_error:
                         if homework != old_homework:
                             status_homework = parse_status(homework)
                             send_message(bot, status_homework)
-            old_homeworks[0] = homeworks
+            old_homeworks_or_error[0] = homeworks
             current_timestamp = 1
             time.sleep(RETRY_TIME)
-            Logging.logger.info(Logging.loop_repeat, exc_info=True)
-            Logging.logger.debug(Logging.no_status_change)
+            logger.info(LOOP_REPEAT, exc_info=True)
+            logger.debug(NO_STATUS_CHANGE)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            if old_homeworks_or_error[0] != message:
+                send_message(bot, message)
+                logger.error(CONNECTION_ERROR + str(error), exc_info=True)
+            old_homeworks_or_error[0] = message
             time.sleep(RETRY_TIME)
-            Logging.logger.error(Logging.connection_error + str(error),
-                                 exc_info=True)
         else:
             time.sleep(RETRY_TIME)
-            Logging.logger.info(Logging.loop_repeat, exc_info=True)
+            logger.info(LOOP_REPEAT, exc_info=True)
 
 
 if __name__ == '__main__':
