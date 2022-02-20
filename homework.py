@@ -132,7 +132,7 @@ def main() -> None:
                 if homework['homework_name'] not in last_message:
                     status_homework = parse_status(homework)
                     if send_message(bot, status_homework):  # Булевая проверка.
-                        # подход Guard block, не пострадает так?
+                        # а тут как улучшить подходом Guard block?))
                         last_message[
                             homework['homework_name']] = status_homework
 
