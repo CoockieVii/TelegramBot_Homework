@@ -47,14 +47,15 @@ LOG_NO_STATUS_CHANGED = (f'Статусы не изменены, '
                          f'повторная проверка через {RETRY_TIME}с.')
 
 
-def send_message(bot: telegram.Bot, message: str) -> requests.request:
+def send_message(bot: telegram.Bot, message: str) -> bool:
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info(LOG_SEND_SUCCESSFUL + message)
+        return True
     except ConnectionError:
         logger.error(LOG_SEND_ERROR + message)
-        raise ConnectionError(LOG_SEND_ERROR + message)
+        return False
 
 
 def get_api_answer(current_timestamp: int) -> requests.get:
@@ -70,11 +71,12 @@ def get_api_answer(current_timestamp: int) -> requests.get:
     except ConnectionError:
         logger.error(LOG_CONNECTION_ERROR + ENDPOINT)
         raise ConnectionError(LOG_CONNECTION_ERROR + ENDPOINT)
-    logger.error(LOG_CONNECTION_ERROR + ENDPOINT  # Тут имелось ввиду вынести
-                 # код из блока или удалить целиком?)) (вынес из блока)
-                 + LOG_CODE_ERROR + str(response.status_code))
-    raise ConnectionError(LOG_CONNECTION_ERROR + ENDPOINT
-                          + LOG_CODE_ERROR + str(response.status_code))
+    logger.error(
+        LOG_CONNECTION_ERROR + ENDPOINT
+        + LOG_CODE_ERROR + str(response.status_code))
+    raise ConnectionError(
+        LOG_CONNECTION_ERROR + ENDPOINT
+        + LOG_CODE_ERROR + str(response.status_code))
 
 
 def check_response(response: requests.request) -> list:
@@ -126,11 +128,13 @@ def main() -> None:
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            for homework in homeworks:  # Лучше ничего не смог придумать((
+            for homework in homeworks:
                 if homework['homework_name'] not in last_message:
                     status_homework = parse_status(homework)
-                    send_message(bot, status_homework)
-                    last_message[homework['homework_name']] = status_homework
+                    if send_message(bot, status_homework):  # Булевая проверка.
+                        # подход Guard block, не пострадает так?
+                        last_message[
+                            homework['homework_name']] = status_homework
 
             current_timestamp = 1
             time.sleep(RETRY_TIME)
@@ -140,9 +144,10 @@ def main() -> None:
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if last_error[0] != message:
-                send_message(bot, message)
-                last_error[0] = message  # Сохранение перенес сюда
-                logger.error(LOG_CONNECTION_ERROR + str(error), exc_info=True)
+                if send_message(bot, message):  # Булевая проверка
+                    last_error[0] = message
+                    logger.error(LOG_CONNECTION_ERROR + str(error),
+                                 exc_info=True)
             time.sleep(RETRY_TIME)
         else:
             time.sleep(RETRY_TIME)
