@@ -70,7 +70,8 @@ def get_api_answer(current_timestamp: int) -> requests.get:
     except ConnectionError:
         logger.error(LOG_CONNECTION_ERROR + ENDPOINT)
         raise ConnectionError(LOG_CONNECTION_ERROR + ENDPOINT)
-    logger.error(LOG_CONNECTION_ERROR + ENDPOINT
+    logger.error(LOG_CONNECTION_ERROR + ENDPOINT  # Тут имелось ввиду вынести
+                 # код из блока или удалить целиком?)) (вынес из блока)
                  + LOG_CODE_ERROR + str(response.status_code))
     raise ConnectionError(LOG_CONNECTION_ERROR + ENDPOINT
                           + LOG_CODE_ERROR + str(response.status_code))
@@ -140,7 +141,7 @@ def main() -> None:
             message = f'Сбой в работе программы: {error}'
             if last_error[0] != message:
                 send_message(bot, message)
-                last_error[0] = message
+                last_error[0] = message  # Сохранение перенес сюда
                 logger.error(LOG_CONNECTION_ERROR + str(error), exc_info=True)
             time.sleep(RETRY_TIME)
         else:
