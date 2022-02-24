@@ -131,8 +131,7 @@ def main() -> None:
             for homework in homeworks:
                 if homework['homework_name'] not in last_message:
                     status_homework = parse_status(homework)
-                    if send_message(bot, status_homework):  # Булевая проверка.
-                        # а тут как улучшить подходом Guard block?))
+                    if send_message(bot, status_homework):
                         last_message[
                             homework['homework_name']] = status_homework
 
@@ -144,7 +143,7 @@ def main() -> None:
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if last_error[0] != message:
-                if send_message(bot, message):  # Булевая проверка
+                if send_message(bot, message):
                     last_error[0] = message
                     logger.error(LOG_CONNECTION_ERROR + str(error),
                                  exc_info=True)
