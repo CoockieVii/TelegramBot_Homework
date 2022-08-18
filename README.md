@@ -3,7 +3,7 @@
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
-![Telegram](https://w7.pngwing.com/pngs/419/837/png-transparent-telegram-icon-telegram-logo-computer-icons-telegram-blue-angle-triangle.png?style=for-the-badge&logo=Telegram&logoColor=white)
+![Telegram](https://cdn-icons-png.flaticon.com/512/2111/2111646.png?style=for-the-badge&logo=Telegram&logoColor=white)
 
 
 # Проект YaMDb :computer:
