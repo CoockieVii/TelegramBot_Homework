@@ -40,3 +40,9 @@ python3 homework.py
 **Валитов Ильмир Илсурович**
 GitHub - [cookievii](https://github.com/cookievii)
 
+
+----------
+
+## MIT License:
+
+#### Copyright (c) 2022 [cookievii](https://github.com/cookievii)
