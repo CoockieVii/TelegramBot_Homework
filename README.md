@@ -23,12 +23,15 @@
 ```bash
 # - Скачиваем проект:
 git clone 'git@github.com:cookievii/TelegramBot_Homework.git'
+
 # - Создаем виртуальное окружение:
 python3 -m venv venv
 source venv/bin/activate
+
 # - Устанавливаем зависимости из файла requirements.txt:
 python3 -m pip install --upgrade pip
 pip install -r requirements.txt
+
 # - Заполняем секретные переменные и запускаем проект:
 python3 homework.py
 ```
