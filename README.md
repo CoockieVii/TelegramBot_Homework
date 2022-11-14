@@ -1,4 +1,4 @@
-# Проект TelegramBot_Homework :iphone:
+# Проект telegram_bot_homework :iphone:
 
 ----------
 
@@ -11,7 +11,7 @@
 
 ### Описание проекта
 
-Проект **TelegramBot_Homework** написан для автоматической отправки сообщения
+Проект **telegram_bot_homework** написан для автоматической отправки сообщения
 владельцу при изменении статуса домашнего задания.
 
 ----------
@@ -22,7 +22,7 @@
 
 ```bash
 # - Скачиваем проект:
-git clone 'git@github.com:cookievii/TelegramBot_Homework.git'
+git clone 'git@github.com:cookievii/telegram_bot_homework.git'
 
 # - Создаем виртуальное окружение:
 python3 -m venv venv
